@@ -17,7 +17,7 @@ client.on('raw', (packet) => {
     const safeData = packet.t === 'VOICE_SERVER_UPDATE'
       ? { guild_id: packet.d?.guild_id, channel_id: packet.d?.channel_id, endpoint: packet.d?.endpoint ? 'REDACTED' : null }
       : { guild_id: packet.d?.guild_id, channel_id: packet.d?.channel_id, user_id: packet.d?.user_id, session_id: packet.d?.session_id ? 'REDACTED' : null };
-    logger.info(`[Gateway] Received ${packet.t}:`, JSON.stringify(safeData));
+    logger.info(`[Gateway] Received ${packet.t}: guild=${safeData.guild_id} channel=${safeData.channel_id} user=${safeData.user_id || 'N/A'}`);
   }
 });
 
@@ -63,6 +63,7 @@ async function joinVoice(guildId, channelId) {
   }
 
   logger.info(`Attempting to join voice channel ${channel.name} (${channelId}) in guild ${guild.name}`);
+  logger.info(`[JoinVoice] Calling streamer.joinVoice(${guildId}, ${channelId}) now...`);
 
   // Use streamer.joinVoice() with a 30s timeout
   const timeout = new Promise((_, reject) =>
@@ -74,7 +75,7 @@ async function joinVoice(guildId, channelId) {
       streamer.joinVoice(guildId, channelId),
       timeout
     ]);
-    logger.info(`joinVoice succeeded, UDP connection established`);
+    logger.info(`[JoinVoice] SUCCESS — UDP connection established`);
   } catch (err) {
     logger.error(`joinVoice failed: ${err.message}`);
     throw new Error(`Failed to join voice: ${err.message}`);
