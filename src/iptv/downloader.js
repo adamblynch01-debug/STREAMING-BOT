@@ -4,7 +4,7 @@ const { cacheWrite, cacheRead } = require('../cache');
 
 const logger = getLogger();
 const MAX_RETRIES = 3;
-const MAX_SIZE = 50 * 1024 * 1024; // 50 MB
+const MAX_SIZE = 500 * 1024 * 1024; // 500 MB — large playlists can exceed 50 MB
 
 async function fetchWithRetry(url, cacheKey) {
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
