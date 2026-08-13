@@ -34,21 +34,32 @@ async function joinVoice(guildId, channelId) {
     // Still try to undeafen/unmute
     if (selfMember.voice) {
       logger.info('Attempting to undeafen/unmute selfbot');
-      await selfMember.voice.setDeaf(false);
-      await selfMember.voice.setMute(false);
-      logger.info('Selfbot undeafened/unmuted');
+      try {
+        await selfMember.voice.setDeaf(false);
+        await selfMember.voice.setMute(false);
+        logger.info('Selfbot undeafened/unmuted');
+      } catch (err) {
+        logger.error(`Failed to undeafen/unmute: ${err.message}`);
+      }
     }
     return;
   }
 
   logger.info(`Attempting to join voice channel ${channel.name} (${channelId}) in guild ${guild.name}`);
 
-  // Use raw discord.js-selfbot-v13 voice connection instead of streamer wrapper
+  // Use streamer.joinVoice() with a 30s timeout
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('joinVoice timeout after 30s (Discord gateway events not received)')), 30000)
+  );
+
   try {
-    await channel.join();
-    logger.info(`Successfully joined voice channel via raw API`);
+    const udpConn = await Promise.race([
+      streamer.joinVoice(guildId, channelId),
+      timeout
+    ]);
+    logger.info(`joinVoice succeeded, UDP connection established`);
   } catch (err) {
-    logger.error(`Raw channel.join() failed: ${err.message}`);
+    logger.error(`joinVoice failed: ${err.message}`);
     throw new Error(`Failed to join voice: ${err.message}`);
   }
 
@@ -56,9 +67,13 @@ async function joinVoice(guildId, channelId) {
   const updatedSelfMember = guild.members.cache.get(streamer.client.user.id);
   if (updatedSelfMember?.voice) {
     logger.info('Attempting to undeafen/unmute selfbot');
-    await updatedSelfMember.voice.setDeaf(false);
-    await updatedSelfMember.voice.setMute(false);
-    logger.info('Selfbot undeafened/unmuted');
+    try {
+      await updatedSelfMember.voice.setDeaf(false);
+      await updatedSelfMember.voice.setMute(false);
+      logger.info('Selfbot undeafened/unmuted');
+    } catch (err) {
+      logger.error(`Failed to undeafen/unmute: ${err.message}`);
+    }
   }
 
   logger.info(`Joined voice: ${channel.name} in ${guild.name}`);
