@@ -13,14 +13,29 @@ const startTime = Date.now();
 function getCurrentChannel() { return currentChannel; }
 function getUptime() { return Math.floor((Date.now() - startTime) / 1000); }
 
+function rebuildStreamUrl(url) {
+  const { XTREAM_URL, XTREAM_USER, XTREAM_PASS } = process.env;
+  if (!XTREAM_URL || !XTREAM_USER || !XTREAM_PASS) return url;
+
+  const match = url.match(/\/(\d+)(?:\.[^/]*)?$/);
+  if (!match) return url;
+
+  const streamId = match[1];
+  const base = XTREAM_URL.replace(/\/$/, '');
+  const authUrl = `${base}/${XTREAM_USER}/${XTREAM_PASS}/${streamId}`;
+  logger.debug(`Rebuilt URL: ${url} → ${authUrl}`);
+  return authUrl;
+}
+
 async function startStream(channel) {
   if (!isStreamerReady()) throw new Error('Streamer not ready');
   await stopStream();
 
   const streamer = getStreamer();
   const bufSize = config.BITRATE_VIDEO * 3;
+  const streamUrl = rebuildStreamUrl(channel.url);
 
-  const { command, output } = prepareStream(channel.url, {
+  const { command, output } = prepareStream(streamUrl, {
     noTranscoding:    config.DISABLE_TRANSCODE,
     minimizeLatency:  config.MINIMIZE_LATENCY,
     bitrateVideo:     config.BITRATE_VIDEO,
