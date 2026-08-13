@@ -36,13 +36,14 @@ async function search(interaction) {
       logger.info(`Button clicked: ${i.customId}`);
       if (!i.customId.startsWith('search:')) return;
 
-      // Defer IMMEDIATELY before any checks
-      await i.deferReply({ flags: MessageFlags.Ephemeral });
-
       if (!i.member?.voice?.channelId) {
         logger.info('User not in voice channel');
-        return i.editReply({ content: '❌ Join a voice channel first.' });
+        return i.reply({ content: '❌ Join a voice channel first.', ephemeral: true });
       }
+
+      // Reply immediately with loading message
+      await i.reply({ content: '⏳ Starting stream...', ephemeral: true });
+
       const channelId = parseInt(i.customId.slice(7), 10);
       logger.info(`Looking up channel ID: ${channelId}`);
       const ch = getChannels({ id: channelId })[0];
@@ -57,8 +58,8 @@ async function search(interaction) {
     } catch (err) {
       logger.error(`Button handler error: ${err.stack}`);
       try {
-        if (i.deferred) await i.editReply({ content: `❌ Error: ${err.message}` });
-        else await i.reply({ content: `❌ Error: ${err.message}`, flags: MessageFlags.Ephemeral });
+        if (i.replied || i.deferred) await i.editReply({ content: `❌ Error: ${err.message}` });
+        else await i.reply({ content: `❌ Error: ${err.message}`, ephemeral: true });
       } catch {}
     }
   });
