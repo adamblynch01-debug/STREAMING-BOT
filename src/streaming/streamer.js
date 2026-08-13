@@ -14,7 +14,10 @@ const client = new Client({
 // Enable raw event debugging
 client.on('raw', (packet) => {
   if (packet.t === 'VOICE_STATE_UPDATE' || packet.t === 'VOICE_SERVER_UPDATE') {
-    logger.info(`[Gateway] Received ${packet.t}:`, JSON.stringify(packet.d));
+    const safeData = packet.t === 'VOICE_SERVER_UPDATE'
+      ? { guild_id: packet.d?.guild_id, channel_id: packet.d?.channel_id, endpoint: packet.d?.endpoint ? 'REDACTED' : null }
+      : { guild_id: packet.d?.guild_id, channel_id: packet.d?.channel_id, user_id: packet.d?.user_id, session_id: packet.d?.session_id ? 'REDACTED' : null };
+    logger.info(`[Gateway] Received ${packet.t}:`, JSON.stringify(safeData));
   }
 });
 
