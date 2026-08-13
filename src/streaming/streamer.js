@@ -95,10 +95,6 @@ async function joinVoice(guildId, channelId) {
   } finally {
     client.off('raw', rawPatcher);
   }
-  } catch (err) {
-    logger.error(`joinVoice failed: ${err.message}`);
-    throw new Error(`Failed to join voice: ${err.message}`);
-  }
 
   // Undeafen and unmute the selfbot
   const updatedSelfMember = guild.members.cache.get(streamer.client.user.id);
