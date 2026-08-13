@@ -21,7 +21,12 @@ async function joinVoice(guildId, channelId) {
   if (!streamer.client.isReady()) throw new Error('Streamer not ready');
 
   const guild = streamer.client.guilds.cache.get(guildId);
-  const selfMember = guild?.members.cache.get(streamer.client.user.id);
+  if (!guild) throw new Error(`Guild ${guildId} not found`);
+
+  const channel = guild.channels.cache.get(channelId);
+  if (!channel) throw new Error(`Channel ${channelId} not found`);
+
+  const selfMember = guild.members.cache.get(streamer.client.user.id);
 
   // Check if already in the target voice channel
   if (selfMember?.voice?.channelId === channelId) {
@@ -36,23 +41,19 @@ async function joinVoice(guildId, channelId) {
     return;
   }
 
-  logger.info(`Attempting to join voice channel ${channelId} in guild ${guildId}`);
+  logger.info(`Attempting to join voice channel ${channel.name} (${channelId}) in guild ${guild.name}`);
 
-  // Add timeout to prevent hanging forever
-  const timeout = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('joinVoice timeout after 10s')), 10000)
-  );
-
-  const res = await Promise.race([
-    streamer.joinVoice(guildId, channelId),
-    timeout
-  ]);
-
-  logger.info(`joinVoice returned: ready=${res.ready}`);
-  if (!res.ready) throw new Error('Failed to join voice channel');
+  // Use raw discord.js-selfbot-v13 voice connection instead of streamer wrapper
+  try {
+    await channel.join();
+    logger.info(`Successfully joined voice channel via raw API`);
+  } catch (err) {
+    logger.error(`Raw channel.join() failed: ${err.message}`);
+    throw new Error(`Failed to join voice: ${err.message}`);
+  }
 
   // Undeafen and unmute the selfbot
-  const updatedSelfMember = guild?.members.cache.get(streamer.client.user.id);
+  const updatedSelfMember = guild.members.cache.get(streamer.client.user.id);
   if (updatedSelfMember?.voice) {
     logger.info('Attempting to undeafen/unmute selfbot');
     await updatedSelfMember.voice.setDeaf(false);
@@ -60,8 +61,7 @@ async function joinVoice(guildId, channelId) {
     logger.info('Selfbot undeafened/unmuted');
   }
 
-  const ch = guild?.channels.cache.get(channelId);
-  logger.info(`Joined voice: ${ch?.name || channelId} in ${guild?.name || guildId}`);
+  logger.info(`Joined voice: ${channel.name} in ${guild.name}`);
 }
 
 async function leaveVoice() {
