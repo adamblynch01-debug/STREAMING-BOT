@@ -21,15 +21,30 @@ async function joinVoice(guildId, channelId) {
   if (!streamer.client.isReady()) throw new Error('Streamer not ready');
   const conn = streamer.voiceConnection;
   if (conn?.channelId === channelId) return; // already there
-  const res = await streamer.joinVoice(guildId, channelId);
+
+  logger.info(`Attempting to join voice channel ${channelId} in guild ${guildId}`);
+
+  // Add timeout to prevent hanging forever
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('joinVoice timeout after 10s')), 10000)
+  );
+
+  const res = await Promise.race([
+    streamer.joinVoice(guildId, channelId),
+    timeout
+  ]);
+
+  logger.info(`joinVoice returned: ready=${res.ready}`);
   if (!res.ready) throw new Error('Failed to join voice channel');
 
   // Undeafen and unmute the selfbot
   const guild = streamer.client.guilds.cache.get(guildId);
   const selfMember = guild?.members.cache.get(streamer.client.user.id);
   if (selfMember?.voice) {
+    logger.info('Attempting to undeafen/unmute selfbot');
     await selfMember.voice.setDeaf(false);
     await selfMember.voice.setMute(false);
+    logger.info('Selfbot undeafened/unmuted');
   }
 
   const ch = guild?.channels.cache.get(channelId);
