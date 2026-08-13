@@ -19,8 +19,22 @@ async function initStreamer() {
 
 async function joinVoice(guildId, channelId) {
   if (!streamer.client.isReady()) throw new Error('Streamer not ready');
-  const conn = streamer.voiceConnection;
-  if (conn?.channelId === channelId) return; // already there
+
+  const guild = streamer.client.guilds.cache.get(guildId);
+  const selfMember = guild?.members.cache.get(streamer.client.user.id);
+
+  // Check if already in the target voice channel
+  if (selfMember?.voice?.channelId === channelId) {
+    logger.info(`Already in voice channel ${channelId}, skipping join`);
+    // Still try to undeafen/unmute
+    if (selfMember.voice) {
+      logger.info('Attempting to undeafen/unmute selfbot');
+      await selfMember.voice.setDeaf(false);
+      await selfMember.voice.setMute(false);
+      logger.info('Selfbot undeafened/unmuted');
+    }
+    return;
+  }
 
   logger.info(`Attempting to join voice channel ${channelId} in guild ${guildId}`);
 
@@ -38,12 +52,11 @@ async function joinVoice(guildId, channelId) {
   if (!res.ready) throw new Error('Failed to join voice channel');
 
   // Undeafen and unmute the selfbot
-  const guild = streamer.client.guilds.cache.get(guildId);
-  const selfMember = guild?.members.cache.get(streamer.client.user.id);
-  if (selfMember?.voice) {
+  const updatedSelfMember = guild?.members.cache.get(streamer.client.user.id);
+  if (updatedSelfMember?.voice) {
     logger.info('Attempting to undeafen/unmute selfbot');
-    await selfMember.voice.setDeaf(false);
-    await selfMember.voice.setMute(false);
+    await updatedSelfMember.voice.setDeaf(false);
+    await updatedSelfMember.voice.setMute(false);
     logger.info('Selfbot undeafened/unmuted');
   }
 
