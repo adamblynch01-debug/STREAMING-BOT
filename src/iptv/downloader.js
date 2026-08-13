@@ -9,7 +9,7 @@ const MAX_SIZE = 500 * 1024 * 1024; // 500 MB — large playlists can exceed 50 
 async function fetchWithRetry(url, cacheKey) {
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30_000);
+    const timeout = setTimeout(() => controller.abort(), 180_000); // 3 minutes for large playlists
     try {
       logger.debug(`Fetching ${cacheKey} (attempt ${attempt})`);
       const res = await axios.get(url, {
