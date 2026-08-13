@@ -65,9 +65,22 @@ async function joinVoice(guildId, channelId) {
   logger.info(`Attempting to join voice channel ${channel.name} (${channelId}) in guild ${guild.name}`);
   logger.info(`[JoinVoice] Calling streamer.joinVoice(${guildId}, ${channelId}) now...`);
 
+  // WORKAROUND: @dank074/discord-video-stream v5 filters out VOICE_SERVER_UPDATE
+  // when channel_id is missing (Discord doesn't always send it for guild voice).
+  // We intercept the raw event and inject the channel_id if missing.
+  const rawPatcher = (packet) => {
+    if (packet.t === 'VOICE_SERVER_UPDATE' && packet.d?.guild_id === guildId) {
+      if (!packet.d.channel_id) {
+        logger.info(`[JoinVoice] Patching missing channel_id into VOICE_SERVER_UPDATE`);
+        packet.d.channel_id = channelId;
+      }
+    }
+  };
+  client.on('raw', rawPatcher);
+
   // Use streamer.joinVoice() with a 30s timeout
   const timeout = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('joinVoice timeout after 30s (Discord gateway events not received)')), 30000)
+    setTimeout(() => reject(new Error('joinVoice timeout after 30s')), 30000)
   );
 
   try {
@@ -76,6 +89,12 @@ async function joinVoice(guildId, channelId) {
       timeout
     ]);
     logger.info(`[JoinVoice] SUCCESS — UDP connection established`);
+  } catch (err) {
+    logger.error(`joinVoice failed: ${err.message}`);
+    throw new Error(`Failed to join voice: ${err.message}`);
+  } finally {
+    client.off('raw', rawPatcher);
+  }
   } catch (err) {
     logger.error(`joinVoice failed: ${err.message}`);
     throw new Error(`Failed to join voice: ${err.message}`);
