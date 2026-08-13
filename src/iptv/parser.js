@@ -13,6 +13,10 @@ function parseM3U(content) {
     const line = raw.trim();
     if (line.startsWith('#EXTINF:')) {
       current = parseExtInf(line);
+      // Skip category headers (fake channels with #### or --- markers)
+      if (current && (current.tvg_name.includes('####') || current.tvg_name.startsWith('---') || current.tvg_name.startsWith('==='))) {
+        current = null;
+      }
     } else if (current && line && !line.startsWith('#')) {
       current.url = line;
       channels.push(current);
