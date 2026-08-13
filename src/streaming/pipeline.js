@@ -66,13 +66,15 @@ async function startStream(channel) {
 
   _startMonitor();
 
-  try {
-    logger.info(`Streaming: ${channel.tvg_name || channel.url}`);
-    await playStream(output, streamer, { type: 'go-live' }, abortCtrl.signal);
-  } finally {
-    _stopMonitor();
-    currentChannel = null;
-  }
+  logger.info(`Streaming: ${channel.tvg_name || channel.url}`);
+
+  // Start stream in background (don't await, or interaction times out)
+  playStream(output, streamer, { type: 'go-live' }, abortCtrl.signal)
+    .catch(err => {
+      logger.error(`playStream error: ${err}`);
+      _stopMonitor();
+      currentChannel = null;
+    });
 }
 
 async function stopStream() {
