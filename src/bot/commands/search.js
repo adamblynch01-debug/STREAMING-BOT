@@ -35,19 +35,22 @@ async function search(interaction) {
     try {
       logger.info(`Button clicked: ${i.customId}`);
       if (!i.customId.startsWith('search:')) return;
+
+      // Defer IMMEDIATELY before any checks
+      await i.deferReply({ flags: MessageFlags.Ephemeral });
+
       if (!i.member?.voice?.channelId) {
         logger.info('User not in voice channel');
-        return i.reply({ content: '❌ Join a voice channel first.', flags: MessageFlags.Ephemeral });
+        return i.editReply({ content: '❌ Join a voice channel first.' });
       }
       const channelId = parseInt(i.customId.slice(7), 10);
       logger.info(`Looking up channel ID: ${channelId}`);
       const ch = getChannels({ id: channelId })[0];
       if (!ch) {
         logger.warn(`Channel ${channelId} not found in database`);
-        return i.reply({ content: '❌ Channel not found.', flags: MessageFlags.Ephemeral });
+        return i.editReply({ content: '❌ Channel not found.' });
       }
       logger.info(`Found channel: ${ch.tvg_name}`);
-      await i.deferReply({ flags: MessageFlags.Ephemeral });
       await joinVoice(i.guildId, i.member.voice.channelId);
       await startStream(ch);
       await i.editReply({ content: `▶ Now streaming **${ch.tvg_name}**` });
