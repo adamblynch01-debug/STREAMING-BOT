@@ -65,11 +65,10 @@ async function joinVoice(guildId, channelId) {
   logger.info(`Attempting to join voice channel ${channel.name} (${channelId}) in guild ${guild.name}`);
   logger.info(`[JoinVoice] Calling streamer.joinVoice(${guildId}, ${channelId}) now...`);
 
-  // WORKAROUND: @dank074/discord-video-stream v5 filters out VOICE_SERVER_UPDATE
-  // when channel_id is missing (Discord doesn't always send it for guild voice).
-  // We intercept the raw event and inject the channel_id if missing.
+  // Patch VOICE_SERVER_UPDATE to inject missing channel_id AND log the endpoint
   const rawPatcher = (packet) => {
     if (packet.t === 'VOICE_SERVER_UPDATE' && packet.d?.guild_id === guildId) {
+      logger.info(`[JoinVoice] VOICE_SERVER_UPDATE endpoint: ${packet.d?.endpoint || 'MISSING'}`);
       if (!packet.d.channel_id) {
         logger.info(`[JoinVoice] Patching missing channel_id into VOICE_SERVER_UPDATE`);
         packet.d.channel_id = channelId;
