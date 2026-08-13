@@ -4,7 +4,21 @@ const { config } = require('../config');
 const { getLogger } = require('../logger');
 
 const logger = getLogger();
-const streamer = new Streamer(new Client());
+
+// Create client with all intents for gateway events
+const client = new Client({
+  checkUpdate: false,
+  ws: { properties: { browser: 'Discord Client' } }
+});
+
+// Enable raw event debugging
+client.on('raw', (packet) => {
+  if (packet.t === 'VOICE_STATE_UPDATE' || packet.t === 'VOICE_SERVER_UPDATE') {
+    logger.info(`[Gateway] Received ${packet.t}:`, JSON.stringify(packet.d));
+  }
+});
+
+const streamer = new Streamer(client);
 
 async function initStreamer() {
   try {
