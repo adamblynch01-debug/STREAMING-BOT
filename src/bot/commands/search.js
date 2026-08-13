@@ -24,7 +24,7 @@ async function search(interaction) {
   for (let r = 0; r < Math.min(2, Math.ceil(results.length / 5)); r++) {
     const slice = results.slice(r * 5, r * 5 + 5);
     rows.push(new ActionRowBuilder().addComponents(
-      slice.map((c, idx) => new ButtonBuilder().setCustomId(`search:${r * 5 + idx}`).setLabel(`▶ ${c.tvg_name.slice(0, 18)}`).setStyle(ButtonStyle.Primary))
+      slice.map(c => new ButtonBuilder().setCustomId(`search:${c.id}`).setLabel(`▶ ${c.tvg_name.slice(0, 18)}`).setStyle(ButtonStyle.Primary))
     ));
   }
 
@@ -34,8 +34,8 @@ async function search(interaction) {
   collector.on('collect', async i => {
     if (!i.customId.startsWith('search:')) return;
     if (!i.member?.voice?.channelId) return i.reply({ content: '❌ Join a voice channel first.', flags: MessageFlags.Ephemeral });
-    const idx = parseInt(i.customId.slice(7), 10);
-    const ch = results[idx];
+    const channelId = parseInt(i.customId.slice(7), 10);
+    const ch = getChannels({ id: channelId })[0];
     if (!ch) return i.reply({ content: '❌ Channel not found.', flags: MessageFlags.Ephemeral });
     await i.deferReply({ flags: MessageFlags.Ephemeral });
     try {
