@@ -32,19 +32,31 @@ async function search(interaction) {
 
   const collector = msg.createMessageComponentCollector({ time: 10 * 60 * 1000 });
   collector.on('collect', async i => {
-    if (!i.customId.startsWith('search:')) return;
-    if (!i.member?.voice?.channelId) return i.reply({ content: '❌ Join a voice channel first.', flags: MessageFlags.Ephemeral });
-    const channelId = parseInt(i.customId.slice(7), 10);
-    const ch = getChannels({ id: channelId })[0];
-    if (!ch) return i.reply({ content: '❌ Channel not found.', flags: MessageFlags.Ephemeral });
-    await i.deferReply({ flags: MessageFlags.Ephemeral });
     try {
+      logger.info(`Button clicked: ${i.customId}`);
+      if (!i.customId.startsWith('search:')) return;
+      if (!i.member?.voice?.channelId) {
+        logger.info('User not in voice channel');
+        return i.reply({ content: '❌ Join a voice channel first.', flags: MessageFlags.Ephemeral });
+      }
+      const channelId = parseInt(i.customId.slice(7), 10);
+      logger.info(`Looking up channel ID: ${channelId}`);
+      const ch = getChannels({ id: channelId })[0];
+      if (!ch) {
+        logger.warn(`Channel ${channelId} not found in database`);
+        return i.reply({ content: '❌ Channel not found.', flags: MessageFlags.Ephemeral });
+      }
+      logger.info(`Found channel: ${ch.tvg_name}`);
+      await i.deferReply({ flags: MessageFlags.Ephemeral });
       await joinVoice(i.guildId, i.member.voice.channelId);
       await startStream(ch);
       await i.editReply({ content: `▶ Now streaming **${ch.tvg_name}**` });
     } catch (err) {
-      logger.error(`Stream error: ${err}`);
-      await i.editReply({ content: `❌ Stream failed: ${err.message}` });
+      logger.error(`Button handler error: ${err.stack}`);
+      try {
+        if (i.deferred) await i.editReply({ content: `❌ Error: ${err.message}` });
+        else await i.reply({ content: `❌ Error: ${err.message}`, flags: MessageFlags.Ephemeral });
+      } catch {}
     }
   });
 }
