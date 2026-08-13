@@ -23,8 +23,16 @@ async function joinVoice(guildId, channelId) {
   if (conn?.channelId === channelId) return; // already there
   const res = await streamer.joinVoice(guildId, channelId);
   if (!res.ready) throw new Error('Failed to join voice channel');
+
+  // Undeafen and unmute the selfbot
   const guild = streamer.client.guilds.cache.get(guildId);
-  const ch    = guild?.channels.cache.get(channelId);
+  const selfMember = guild?.members.cache.get(streamer.client.user.id);
+  if (selfMember?.voice) {
+    await selfMember.voice.setDeaf(false);
+    await selfMember.voice.setMute(false);
+  }
+
+  const ch = guild?.channels.cache.get(channelId);
   logger.info(`Joined voice: ${ch?.name || channelId} in ${guild?.name || guildId}`);
 }
 
